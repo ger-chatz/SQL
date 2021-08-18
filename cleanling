@@ -1,0 +1,145 @@
+select *
+from cleaning2..clean
+
+
+--REMOVE THE TIME IN DATE COLLUMS 00:00:00
+Select SaleDate,Convert(date,SaleDate)
+from cleaning2..clean
+update clean
+SET SaleDate=CONVERT(DATE,SaleDate)
+ALTER TABLE clean
+add saledate2 Date;
+update clean
+SET saledate2=CONVERT(Date,Saledate)
+
+--REMOVE THE OLD DATE-COLLUM
+ALTER TABLE clean
+DROP COLUMN saledate
+
+--there are null values in property adress,OwnerName ,owner adress and many more
+--GENERATE NULL VALUES WHERE WE CAN
+--we notice the same parcel id have the same adress as other with exactly the same parcel id but has null adress we can generate some of the null adresses with the right adress
+
+Update a
+SET PropertyAddress = ISNULL(a.PropertyAddress,b.PropertyAddress)
+From cleaning2..clean a
+JOIN cleaning2..clean b
+	on a.ParcelID = b.ParcelID
+	AND a.[UniqueID ] <> b.[UniqueID ]
+Where a.PropertyAddress is null
+
+--lets check
+
+select PropertyAddress
+from cleaning2..clean
+Where PropertyAddress IS NULL
+
+--All done 0 nulls
+
+--we can do exactly the same with the other colloums too because if 1 parcel id has the property adress so the others will have exactly the same like the same full bath etc
+--as we can see the other null values where from unique adresses with no other non-null same adress
+
+Select Bedrooms,PropertyAddress
+From cleaning2..clean
+Where Bedrooms is null
+order by PropertyAddress
+
+
+--as we can see all NULL values now are unique not only for bedrooms but for everything
+--REPLACE NULL VALUES WITH <NO INFO> OR -1
+
+UPDATE clean SET Bedrooms=-1 WHERE Bedrooms IS NULL
+UPDATE clean SET FullBath=-1 WHERE FullBath IS NULL
+UPDATE clean SET HalfBath=-1 WHERE HalfBath IS NULL
+UPDATE clean SET LandValue=-1 WHERE LandValue IS NULL
+UPDATE clean SET YearBuilt=-1 WHERE YearBuilt IS NULL
+UPDATE clean SET OwnerName=-1 WHERE OwnerName IS NULL
+UPDATE clean SET OwnerAddress=-1 WHERE OwnerAddress IS NULL
+UPDATE clean SET Acreage=-1 WHERE Acreage IS NULL
+UPDATE clean SET TaxDistrict=-1 WHERE TaxDistrict IS NULL
+UPDATE clean SET BuildingValue=-1 WHERE BuildingValue IS NULL
+UPDATE clean SET TotalValue=1 WHERE TotalValue is null
+
+select *
+from cleaning2..clean
+
+--no NULL values
+
+
+--PHONE NUMBER SPLIT INTO AREA CODE AND PHONE
+--as we can see and genral phone numbers are split inot area codes and  phone numbers
+--we can split the phone number then into area code and phone number
+
+--create the 2 new collums
+
+ALTER TABLE clean
+add areacode Nvarchar(200);
+
+ALTER TABLE clean
+add phone Nvarchar(200);
+
+--check and update the two collums by spliting the phone number
+SELECT 
+    areacode  = LEFT(CAST(PhoneNumber AS varchar(14)),3), 
+    phone = SUBSTRING(CAST(PhoneNumber AS varchar(14)), 4, 10)
+FROM cleaning2..clean
+update cleaning2..clean
+SET 
+    areacode  = LEFT(CAST(PhoneNumber AS varchar(14)),3), 
+    phone = SUBSTRING(CAST(PhoneNumber AS varchar(14)), 4, 10)
+FROM cleaning2..clean
+
+--PROPERTY ADRESS CONTAINS 1.ADRESS NUMBER  2.CITY NAME   3.REGION NAME IN SAME COLLUM WE GONNA SPLIT THEM
+--Property adress have 3 information adress name,city,region 
+--to have a better understanding of the data we can also split this collum into 3 other collums adress number,city and region
+
+
+
+
+--η εντολη που γραφουμε ξεχωριζει μονο αμα εχει τελειες αναμεσα ενω εμεις εχοθμε κομμα <,>  
+--οποτε θα κανω αλλαγη , σε . πρωτα
+
+
+
+
+Select
+PARSENAME(REPLACE(OwnerAddress, ',', '.') , 3)
+,PARSENAME(REPLACE(OwnerAddress, ',', '.') , 2)
+,PARSENAME(REPLACE(OwnerAddress, ',', '.') , 1)
+From cleaning2..clean
+
+
+
+ALTER TABLE clean
+Add addressown Nvarchar(90);
+
+Update clean
+SET addressown = PARSENAME(REPLACE(OwnerAddress, ',', '.') , 3)
+
+
+ALTER TABLE clean
+Add OwnerCity Nvarchar(20);
+
+Update clean
+SET OwnerCity = PARSENAME(REPLACE(OwnerAddress, ',', '.') , 2)
+
+
+
+ALTER TABLE clean
+Add OwnerState Nvarchar(90);
+
+Update clean
+SET OwnerState = PARSENAME(REPLACE(OwnerAddress, ',', '.') , 1)
+
+--check
+select *
+from cleaning2..clean
+--ετοιμο
+
+
+
+--delete the extra collums
+
+
+ALTER TABLE cleaning2..clean
+DROP COLUMN OwnerAddress
